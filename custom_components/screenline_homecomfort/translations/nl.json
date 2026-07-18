@@ -1,0 +1,53 @@
+{
+  "title": "ScreenLine HomeComfort",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Log in bij Pellini HomeComfort",
+        "description": "Gebruik hetzelfde account als in de HomeComfort-app.",
+        "data": {
+          "email": "E-mailadres",
+          "password": "Wachtwoord"
+        }
+      },
+      "hub": {
+        "title": "Kies de WISE Hub",
+        "description": "{note}",
+        "data": {
+          "hub_name": "Geregistreerde hub",
+          "host": "Lokaal IP-adres of hostnaam",
+          "verify_ssl": "SSL-certificaat controleren"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Opnieuw aanmelden",
+        "description": "Voer je Pellini-accountgegevens opnieuw in.",
+        "data": {
+          "email": "E-mailadres",
+          "password": "Wachtwoord"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Kan de Pellini-cloud niet bereiken.",
+      "cannot_connect_hub": "Cloud-login geslaagd, maar de lokale WISE Hub is niet bereikbaar.",
+      "invalid_auth": "Ongeldige accountgegevens.",
+      "no_hubs": "Er zijn geen WISE Hubs aan dit account gekoppeld."
+    },
+    "abort": {
+      "already_configured": "Deze WISE Hub is al geconfigureerd.",
+      "reauth_successful": "Opnieuw aanmelden is gelukt."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "WISE Hub-instellingen",
+        "data": {
+          "host": "Lokaal IP-adres of hostnaam",
+          "verify_ssl": "SSL-certificaat controleren"
+        }
+      }
+    }
+  }
+}

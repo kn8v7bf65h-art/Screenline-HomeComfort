@@ -1,67 +1,47 @@
-# ScreenLine WISE for Home Assistant
+# ScreenLine HomeComfort for Home Assistant
 
-Unofficial local Home Assistant integration for Pellini ScreenLine WISE / HomeComfort hubs.
+Unofficial Home Assistant integration for Pellini ScreenLine blinds connected through a WISE Hub.
 
-## Features
+## Version 0.2.0
 
-- Local HTTPS communication with the WISE hub
-- Automatic discovery of rooms and Venetian blinds after configuration
-- Open, close and stop
-- Set exact blind position
-- Set exact slat tilt
-- Battery sensors
-- Config flow and token reauthentication
-- Configurable polling interval (10–300 seconds)
+This release replaces manual JWT entry with the verified HomeComfort cloud login flow:
 
-## Installation
+1. Sign in with your Pellini/HomeComfort email address and password.
+2. The integration retrieves `loginToken` and `registeredHubs`.
+3. Select the correct registered WISE Hub.
+4. Enter its local IP address or hostname.
+5. The token is automatically renewed when the local hub returns HTTP 401/403.
 
-### HACS custom repository
+The credentials remain stored in the Home Assistant config entry so the integration can renew the token. Home Assistant stores config-entry data in `.storage`; secure access to your Home Assistant instance accordingly.
 
-1. Put this project in a GitHub repository.
-2. In HACS, open **Integrations** → menu → **Custom repositories**.
-3. Add the repository URL as category **Integration**.
-4. Install **ScreenLine WISE** and restart Home Assistant.
+## Installation with HACS
 
-### Manual
+1. HACS → Integrations → three-dot menu → **Custom repositories**.
+2. Add `https://github.com/kn8v7bf65h-art/Screenline-HomeComfort` as an **Integration**.
+3. Install **ScreenLine HomeComfort**.
+4. Restart Home Assistant.
+5. Settings → Devices & services → Add integration → **ScreenLine HomeComfort**.
 
-Copy `custom_components/screenline_wise` to Home Assistant's `config/custom_components/` folder and restart Home Assistant.
+## Confirmed API calls
 
-## Configuration
+Cloud authentication:
 
-Add the integration through **Settings → Devices & services → Add integration → ScreenLine WISE**.
+```text
+POST https://account.pellini.net/wisehubhomecomfort/api/user/login
+```
 
-Enter:
+Local WISE Hub:
 
-- Hub IP address, for example `192.168.68.71`
-- Bearer token without the word `Bearer`
-- Leave SSL verification disabled because the WISE hub uses a self-signed ScreenLine certificate
-
-The token is sensitive. Do not post it publicly or commit it to Git.
-
-## Position mapping
-
-ScreenLine reports `coverage` as `0` for fully raised and `100` for fully lowered. Home Assistant uses the reverse convention, so this integration converts the values automatically.
-
-ScreenLine inclination is mapped from `-75..75` degrees to Home Assistant's `0..100` tilt scale. Commands are rounded to 15-degree steps for SL20/22W Venetian blinds.
-
-## Tested hardware
-
-- WISE hub local API on HTTPS port 8080
-- Venetian SL20/22W blinds
-- API routes used:
-  - `GET /api/plant/rooms?includeBlinds=true&includeGlasses=true`
-  - `POST /api/rooms/{room_id}/position`
-  - `POST /api/rooms/{room_id}/move`
+```text
+GET  https://<hub>:8080/api/plant/rooms?includeBlinds=true&includeGlasses=true
+POST https://<hub>:8080/api/rooms/{room}/move
+POST https://<hub>:8080/api/rooms/{room}/position
+POST https://<hub>:8080/api/rooms/{room}/tilt
+```
 
 ## Notes
 
-This is an unofficial integration and is not affiliated with Pellini or ScreenLine. The local API is undocumented and may change after hub firmware updates.
-
-
-## Changelog
-
-### 0.1.1
-
-- Use the physically reported coverage and inclination while a movement is pending.
-- Refresh more frequently after movement commands.
-- Use the dedicated WISE tilt endpoint for the tilt up/down controls.
+- WISE Hub certificates are commonly self-signed; SSL verification is disabled by default.
+- Coverage from the hub is converted to Home Assistant cover position (`HA position = 100 - coverage`).
+- Tilt uses the confirmed `INCREMENT` and `DECREMENT` API operations.
+- This project is unofficial and not affiliated with Pellini S.p.A.
