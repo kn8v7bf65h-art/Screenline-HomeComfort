@@ -2,9 +2,11 @@
 
 Unofficial Home Assistant integration for Pellini ScreenLine blinds connected through a WISE Hub.
 
-## Version 0.2.0
+![HomeComfort branding](homecomfort-brand-preview.png)
 
-This release replaces manual JWT entry with the verified HomeComfort cloud login flow:
+## Version 0.2.1
+
+This release adds HomeComfort-style brand assets for Home Assistant and HACS. It retains the verified cloud login flow introduced in v0.2.0:
 
 1. Sign in with your Pellini/HomeComfort email address and password.
 2. The integration retrieves `loginToken` and `registeredHubs`.
@@ -13,6 +15,12 @@ This release replaces manual JWT entry with the verified HomeComfort cloud login
 5. The token is automatically renewed when the local hub returns HTTP 401/403.
 
 The credentials remain stored in the Home Assistant config entry so the integration can renew the token. Home Assistant stores config-entry data in `.storage`; secure access to your Home Assistant instance accordingly.
+
+### Branding in Home Assistant
+
+Home Assistant 2026.3 or newer loads the integration icon and logo directly from `custom_components/screenline_homecomfort/brand/`. Separate light and dark mode assets are included.
+
+HACS brand assets are also included in the repository-level `brand/` directory.
 
 ## Installation with HACS
 
