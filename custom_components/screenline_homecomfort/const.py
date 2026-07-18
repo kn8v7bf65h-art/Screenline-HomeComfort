@@ -2,7 +2,7 @@
 
 DOMAIN = "screenline_homecomfort"
 NAME = "ScreenLine HomeComfort"
-VERSION = "0.2.0"
+VERSION = "0.2.2"
 
 CONF_EMAIL = "email"
 CONF_PASSWORD = "password"

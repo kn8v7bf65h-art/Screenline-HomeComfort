@@ -14,3 +14,9 @@
 - Added verified HomeComfort cloud login.
 - Added registered WISE Hub selection.
 - Added automatic token renewal and reauthentication.
+
+## 0.2.2
+
+- Herstelt batterij-, bedekkings- en lamellenhoekstatus.
+- Leest de status opnieuw correct uit het geneste `blind.status`-object.
+- Voegt het sensorplatform en exacte tiltbediening opnieuw toe.
