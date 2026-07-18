@@ -1,0 +1,11 @@
+{
+  "domain": "screenline_wise",
+  "name": "ScreenLine WISE",
+  "codeowners": [],
+  "config_flow": true,
+  "documentation": "https://github.com/marvingrootscholten/homeassistant-screenline-wise",
+  "integration_type": "hub",
+  "iot_class": "local_polling",
+  "requirements": [],
+  "version": "0.1.0"
+}

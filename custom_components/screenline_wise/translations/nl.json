@@ -1,0 +1,49 @@
+{
+  "title": "ScreenLine WISE",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Verbinden met ScreenLine WISE",
+        "description": "Voer het lokale hubadres en het Bearer-token uit de HomeComfort-app in.",
+        "data": {
+          "host": "IP-adres van de hub",
+          "token": "Bearer-token (zonder 'Bearer')",
+          "verify_ssl": "SSL-certificaat controleren"
+        }
+      },
+      "reauth_confirm": {
+        "title": "ScreenLine-token bijwerken",
+        "description": "Het huidige token is geweigerd. Voer een nieuw Bearer-token in.",
+        "data": {
+          "token": "Bearer-token (zonder 'Bearer')"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Kan geen verbinding maken met de ScreenLine WISE-hub.",
+      "invalid_auth": "Het Bearer-token is geweigerd.",
+      "unknown": "Er is een onverwachte fout opgetreden."
+    },
+    "abort": {
+      "already_configured": "Deze ScreenLine WISE-hub is al geconfigureerd.",
+      "reauth_successful": "De authenticatie is bijgewerkt."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "ScreenLine WISE-opties",
+        "data": {
+          "scan_interval": "Update-interval in seconden"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "battery": {
+        "name": "Batterij"
+      }
+    }
+  }
+}

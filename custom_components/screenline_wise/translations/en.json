@@ -1,0 +1,49 @@
+{
+  "title": "ScreenLine WISE",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect to ScreenLine WISE",
+        "description": "Enter the local hub address and the Bearer token from the HomeComfort app.",
+        "data": {
+          "host": "Hub IP address",
+          "token": "Bearer token (without 'Bearer')",
+          "verify_ssl": "Verify SSL certificate"
+        }
+      },
+      "reauth_confirm": {
+        "title": "Update ScreenLine token",
+        "description": "The current token was rejected. Enter a new Bearer token.",
+        "data": {
+          "token": "Bearer token (without 'Bearer')"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not connect to the ScreenLine WISE hub.",
+      "invalid_auth": "The Bearer token was rejected.",
+      "unknown": "An unexpected error occurred."
+    },
+    "abort": {
+      "already_configured": "This ScreenLine WISE hub is already configured.",
+      "reauth_successful": "Authentication was updated successfully."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "ScreenLine WISE options",
+        "data": {
+          "scan_interval": "Update interval in seconds"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "battery": {
+        "name": "Battery"
+      }
+    }
+  }
+}
