@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 from homeassistant.components.cover import (
@@ -84,14 +85,37 @@ class ScreenLineCover(ScreenLineEntity, CoverEntity):
         self._attr_unique_id = f"{coordinator.client.host}_{blind_id}_cover"
         self._attr_name = None
 
+    def _reported_status_value(
+        self, current_key: str, received_key: str, confirmed_key: str
+    ) -> int | float | None:
+        """Prefer the last physical report while a target is not yet confirmed."""
+        status = self.blind.get("status") or {}
+        current = status.get(current_key)
+        received = status.get(received_key)
+        confirmed = status.get(confirmed_key)
+
+        # The WISE hub updates current* immediately to the requested target. Until the
+        # motor reports completion, *Received is a better representation of reality.
+        if confirmed is False and received is not None:
+            return received
+        return current if current is not None else received
+
     @property
     def current_cover_position(self) -> int | None:
-        return coverage_to_ha((self.blind.get("status") or {}).get("currentCoverage"))
+        return coverage_to_ha(
+            self._reported_status_value(
+                "currentCoverage", "coverageReceived", "currentCoverageNotified"
+            )
+        )
 
     @property
     def current_cover_tilt_position(self) -> int | None:
         return inclination_to_ha(
-            (self.blind.get("status") or {}).get("currentInclination")
+            self._reported_status_value(
+                "currentInclination",
+                "inclinationReceived",
+                "currentInclinationNotified",
+            )
         )
 
     @property
@@ -114,7 +138,15 @@ class ScreenLineCover(ScreenLineEntity, CoverEntity):
         }
 
     async def _refresh_after_command(self) -> None:
+        """Refresh now and several times while the battery blind is moving."""
         await self.coordinator.async_request_refresh()
+
+        async def _delayed_refresh(delay: int) -> None:
+            await asyncio.sleep(delay)
+            await self.coordinator.async_request_refresh()
+
+        for delay in (2, 5, 10, 20, 40):
+            self.hass.async_create_task(_delayed_refresh(delay))
 
     async def async_open_cover(self, **kwargs: Any) -> None:
         await self.coordinator.client.async_move(
@@ -147,20 +179,17 @@ class ScreenLineCover(ScreenLineEntity, CoverEntity):
         await self._refresh_after_command()
 
     async def async_open_cover_tilt(self, **kwargs: Any) -> None:
-        await self.coordinator.client.async_set_position(
-            self.room["id"],
-            [self.blind_id],
-            int((self.blind.get("status") or {}).get("currentCoverage", 100)),
-            TILT_MAX,
+        # The official app maps its tilt-up button to one INCREMENT command.
+        # This changes only the slat angle and does not alter blind coverage.
+        await self.coordinator.client.async_tilt_step(
+            self.room["id"], [self.blind_id], "INCREMENT"
         )
         await self._refresh_after_command()
 
     async def async_close_cover_tilt(self, **kwargs: Any) -> None:
-        await self.coordinator.client.async_set_position(
-            self.room["id"],
-            [self.blind_id],
-            int((self.blind.get("status") or {}).get("currentCoverage", 100)),
-            TILT_MIN,
+        # The official app maps its tilt-down button to one DECREMENT command.
+        await self.coordinator.client.async_tilt_step(
+            self.room["id"], [self.blind_id], "DECREMENT"
         )
         await self._refresh_after_command()
 

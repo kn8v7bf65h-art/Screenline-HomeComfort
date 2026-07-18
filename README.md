@@ -56,3 +56,12 @@ ScreenLine inclination is mapped from `-75..75` degrees to Home Assistant's `0..
 ## Notes
 
 This is an unofficial integration and is not affiliated with Pellini or ScreenLine. The local API is undocumented and may change after hub firmware updates.
+
+
+## Changelog
+
+### 0.1.1
+
+- Use the physically reported coverage and inclination while a movement is pending.
+- Refresh more frequently after movement commands.
+- Use the dedicated WISE tilt endpoint for the tilt up/down controls.
