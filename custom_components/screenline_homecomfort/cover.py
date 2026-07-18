@@ -17,11 +17,13 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN
+from .const import COMMAND_REFRESH_DELAYS, DOMAIN
 from .coordinator import ScreenLineCoordinator
 
 TILT_MIN = -75
 TILT_MAX = 75
+TILT_OPEN = 0
+TILT_CLOSED = 75
 
 
 def _blind_list(room: dict[str, Any]) -> list[dict[str, Any]]:
@@ -47,25 +49,45 @@ def _display_name(value: Any, fallback: str) -> str:
     return text
 
 
-def coverage_to_ha(value: int | float | None) -> int | None:
-    """Convert WISE coverage (0 open, 100 covered) to HA position."""
-    if value is None:
+def _number(value: Any) -> float | None:
+    """Return a numeric API value without treating booleans as numbers."""
+    if isinstance(value, bool) or value is None:
         return None
-    return max(0, min(100, 100 - round(float(value))))
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def coverage_to_ha(value: int | float | None) -> int | None:
+    """Convert WISE percentage covered to HA percentage open."""
+    numeric = _number(value)
+    if numeric is None:
+        return None
+    return max(0, min(100, 100 - round(numeric)))
 
 
 def inclination_to_ha(value: int | float | None) -> int | None:
-    """Convert WISE inclination (-75..75 degrees) to HA tilt (0..100)."""
-    if value is None:
+    """Convert WISE angle to HA tilt openness.
+
+    ScreenLine reports an angle from -75 to +75 degrees. Zero degrees means
+    horizontal/open slats; either extreme means closed slats. Home Assistant
+    expects 0% = closed and 100% = open, so the direction of closure is not
+    represented in the standard tilt value but remains available as an extra
+    state attribute.
+    """
+    numeric = _number(value)
+    if numeric is None:
         return None
-    result = (float(value) - TILT_MIN) / (TILT_MAX - TILT_MIN) * 100
-    return max(0, min(100, round(result)))
+    openness = 100 * (1 - min(abs(numeric), TILT_MAX) / TILT_MAX)
+    return max(0, min(100, round(openness)))
 
 
 def ha_to_inclination(value: int | float) -> int:
-    """Convert HA tilt to a supported WISE 15-degree step."""
-    result = TILT_MIN + float(value) / 100 * (TILT_MAX - TILT_MIN)
-    return max(TILT_MIN, min(TILT_MAX, round(result / 15) * 15))
+    """Convert HA tilt openness to WISE angle using downward closure."""
+    openness = max(0, min(100, float(value)))
+    angle = TILT_CLOSED * (1 - openness / 100)
+    return max(TILT_OPEN, min(TILT_CLOSED, round(angle / 15) * 15))
 
 
 async def async_setup_entry(
@@ -111,6 +133,7 @@ class ScreenLineCover(CoordinatorEntity[ScreenLineCoordinator], CoverEntity):
         self._room_name = room_name
         self._blind_id = int(blind["id"])
         self._blind = blind
+        self._refresh_tasks: set[asyncio.Task[None]] = set()
         self._attr_unique_id = f"{coordinator.entry.unique_id}_{self._blind_id}_cover"
         blind_name = _display_name(
             blind.get("realName") or blind.get("name"), f"Blind {self._blind_id}"
@@ -126,8 +149,17 @@ class ScreenLineCover(CoordinatorEntity[ScreenLineCoordinator], CoverEntity):
             "name": self._attr_name,
             "manufacturer": "Pellini ScreenLine",
             "model": model_name or "WISE blind",
-            "via_device": (DOMAIN, self.coordinator.entry.unique_id or self.coordinator.entry.entry_id),
+            "via_device": (
+                DOMAIN,
+                self.coordinator.entry.unique_id or self.coordinator.entry.entry_id,
+            ),
         }
+
+    async def async_will_remove_from_hass(self) -> None:
+        for task in self._refresh_tasks:
+            task.cancel()
+        self._refresh_tasks.clear()
+        await super().async_will_remove_from_hass()
 
     def _refresh_blind_reference(self) -> None:
         for room in self.coordinator.data:
@@ -138,50 +170,56 @@ class ScreenLineCover(CoordinatorEntity[ScreenLineCoordinator], CoverEntity):
                     self._blind = blind
                     return
 
-    def _reported_status_value(
-        self, current_key: str, received_key: str, confirmed_key: str
-    ) -> int | float | None:
+    def _status_value(self, current_key: str, received_key: str) -> float | None:
+        """Prefer current hub state and use received only as a missing-value fallback.
+
+        The *Received fields are not a reliable physical-position source. In
+        observed hub responses they may remain at 100 while currentCoverage is
+        the actual value (for example 78). Confirmation flags therefore must
+        not replace a valid current value.
+        """
         self._refresh_blind_reference()
         status = _status(self._blind)
-        current = status.get(current_key)
-        received = status.get(received_key)
-        confirmed = status.get(confirmed_key)
-        # The hub may set the requested target immediately. Until the motor confirms
-        # it, the last received physical position is the more accurate value.
-        if confirmed is False and received is not None:
-            return received
-        return current if current is not None else received
+        current = _number(status.get(current_key))
+        if current is not None:
+            return current
+        return _number(status.get(received_key))
 
     @property
     def current_cover_position(self) -> int | None:
         return coverage_to_ha(
-            self._reported_status_value(
-                "currentCoverage", "coverageReceived", "currentCoverageNotified"
-            )
+            self._status_value("currentCoverage", "coverageReceived")
         )
 
     @property
     def current_cover_tilt_position(self) -> int | None:
         return inclination_to_ha(
-            self._reported_status_value(
-                "currentInclination",
-                "inclinationReceived",
-                "currentInclinationNotified",
-            )
+            self._status_value("currentInclination", "inclinationReceived")
         )
 
     @property
     def is_closed(self) -> bool | None:
         position = self.current_cover_position
-        return None if position is None else position == 0
+        return None if position is None else position <= 0
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         self._refresh_blind_reference()
         status = _status(self._blind)
+        current_coverage = _number(status.get("currentCoverage"))
+        current_inclination = _number(status.get("currentInclination"))
         return {
-            "screenline_coverage": status.get("currentCoverage"),
-            "screenline_inclination_degrees": status.get("currentInclination"),
+            "screenline_coverage": current_coverage,
+            "screenline_inclination_degrees": current_inclination,
+            "screenline_tilt_direction": (
+                "upward"
+                if current_inclination is not None and current_inclination < 0
+                else "downward"
+                if current_inclination is not None and current_inclination > 0
+                else "horizontal"
+                if current_inclination == 0
+                else None
+            ),
             "coverage_received": status.get("coverageReceived"),
             "inclination_received_degrees": status.get("inclinationReceived"),
             "coverage_confirmed": status.get("currentCoverageNotified"),
@@ -191,14 +229,18 @@ class ScreenLineCover(CoordinatorEntity[ScreenLineCoordinator], CoverEntity):
         }
 
     async def _refresh_after_command(self) -> None:
-        await self.coordinator.async_request_refresh()
+        """Refresh sparingly after a command to protect blind batteries."""
 
         async def delayed_refresh(delay: int) -> None:
-            await asyncio.sleep(delay)
-            await self.coordinator.async_request_refresh()
+            try:
+                await asyncio.sleep(delay)
+                await self.coordinator.async_request_refresh()
+            finally:
+                self._refresh_tasks.discard(asyncio.current_task())
 
-        for delay in (2, 5, 10, 20, 40):
-            self.hass.async_create_task(delayed_refresh(delay))
+        for delay in COMMAND_REFRESH_DELAYS:
+            task = self.hass.async_create_task(delayed_refresh(delay))
+            self._refresh_tasks.add(task)
 
     async def async_open_cover(self, **kwargs: Any) -> None:
         await self.coordinator.hub.move(self._room_id, self._blind_id, "UP")
@@ -214,30 +256,40 @@ class ScreenLineCover(CoordinatorEntity[ScreenLineCoordinator], CoverEntity):
 
     async def async_set_cover_position(self, **kwargs: Any) -> None:
         position = int(kwargs[ATTR_POSITION])
-        inclination = self._reported_status_value(
-            "currentInclination", "inclinationReceived", "currentInclinationNotified"
+        inclination = self._status_value(
+            "currentInclination", "inclinationReceived"
         )
         await self.coordinator.hub.set_position(
             self._room_id,
             self._blind_id,
             100 - position,
-            0 if inclination is None else int(inclination),
+            TILT_OPEN if inclination is None else int(inclination),
         )
         await self._refresh_after_command()
 
     async def async_open_cover_tilt(self, **kwargs: Any) -> None:
-        await self.coordinator.hub.tilt(self._room_id, self._blind_id, "INCREMENT")
+        coverage = self._status_value("currentCoverage", "coverageReceived")
+        await self.coordinator.hub.set_position(
+            self._room_id,
+            self._blind_id,
+            100 if coverage is None else int(coverage),
+            TILT_OPEN,
+        )
         await self._refresh_after_command()
 
     async def async_close_cover_tilt(self, **kwargs: Any) -> None:
-        await self.coordinator.hub.tilt(self._room_id, self._blind_id, "DECREMENT")
+        coverage = self._status_value("currentCoverage", "coverageReceived")
+        await self.coordinator.hub.set_position(
+            self._room_id,
+            self._blind_id,
+            100 if coverage is None else int(coverage),
+            TILT_CLOSED,
+        )
         await self._refresh_after_command()
 
     async def async_set_cover_tilt_position(self, **kwargs: Any) -> None:
         tilt_position = int(kwargs[ATTR_TILT_POSITION])
-        coverage = self._reported_status_value(
-            "currentCoverage", "coverageReceived", "currentCoverageNotified"
-        )
+        coverage = self._status_value("currentCoverage", "coverageReceived")
         await self.coordinator.hub.set_position(
             self._room_id,
             self._blind_id,

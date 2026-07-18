@@ -53,3 +53,7 @@ POST https://<hub>:8080/api/rooms/{room}/tilt
 - Coverage from the hub is converted to Home Assistant cover position (`HA position = 100 - coverage`).
 - Tilt uses the confirmed `INCREMENT` and `DECREMENT` API operations.
 - This project is unofficial and not affiliated with Pellini S.p.A.
+
+### Polling and position semantics (v0.2.3)
+
+The integration polls the WISE Hub every five minutes and performs only two follow-up refreshes after commands (3 and 10 seconds). ScreenLine coverage is percentage closed, while Home Assistant position is percentage open; therefore 78% ScreenLine coverage appears as 22% Home Assistant position. Tilt is represented as openness: horizontal slats are 100%, fully tilted slats are 0%.

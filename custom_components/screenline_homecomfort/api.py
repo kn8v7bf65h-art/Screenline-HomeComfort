@@ -185,7 +185,7 @@ class WiseHubClient:
             f"/api/rooms/{room_id}/position",
             json={
                 "coverage": max(0, min(100, int(coverage))),
-                "inclination": max(0, min(90, int(inclination))),
+                "inclination": max(-75, min(75, int(inclination))),
                 "blindIds": [blind_id],
             },
         )

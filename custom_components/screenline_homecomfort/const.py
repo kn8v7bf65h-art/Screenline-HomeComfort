@@ -2,7 +2,7 @@
 
 DOMAIN = "screenline_homecomfort"
 NAME = "ScreenLine HomeComfort"
-VERSION = "0.2.2"
+VERSION = "0.2.3"
 
 CONF_EMAIL = "email"
 CONF_PASSWORD = "password"
@@ -14,7 +14,8 @@ CLOUD_BASE_URL = "https://account.pellini.net/wisehubhomecomfort"
 CLOUD_LOGIN_PATH = "/api/user/login"
 LOCAL_PORT = 8080
 
-DEFAULT_SCAN_INTERVAL = 15
+DEFAULT_SCAN_INTERVAL = 300
+COMMAND_REFRESH_DELAYS = (3, 10)
 DEFAULT_VERIFY_SSL = False
 APP_NAME = "HomeComfort"
 APP_VERSION = "1.0.21"
