@@ -57,3 +57,9 @@ POST https://<hub>:8080/api/rooms/{room}/tilt
 ### Polling and position semantics (v0.2.3)
 
 The integration polls the WISE Hub every five minutes and performs only two follow-up refreshes after commands (3 and 10 seconds). ScreenLine coverage is percentage closed, while Home Assistant position is percentage open; therefore 78% ScreenLine coverage appears as 22% Home Assistant position. Tilt is represented as openness: horizontal slats are 100%, fully tilted slats are 0%.
+
+### Lamellen één stap kantelen
+
+Vanaf v0.2.4 worden per jaloezie twee knop-entiteiten toegevoegd waarmee de
+lamellen exact één native stap kunnen worden gekanteld. Deze gebruiken dezelfde
+`INCREMENT`- en `DECREMENT`-commando's als de officiële app en afstandsbediening.

@@ -31,3 +31,9 @@
 - Reduced normal polling from 15 seconds to 5 minutes.
 - Reduced command follow-up refreshes to 3 and 10 seconds.
 - Fixed negative inclination values being incorrectly clamped to 0 by the API client.
+
+## 0.2.4
+
+- Added two incremental slat-control buttons per blind.
+- Uses the native WISE Hub `/tilt` endpoint with `INCREMENT` and `DECREMENT`.
+- A single delayed refresh after three seconds limits unnecessary radio traffic.

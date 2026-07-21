@@ -11,7 +11,7 @@ from .api import PelliniCloudClient, WiseHubClient
 from .const import CONF_EMAIL, CONF_HOST, CONF_PASSWORD, CONF_VERIFY_SSL, DOMAIN
 from .coordinator import ScreenLineCoordinator
 
-PLATFORMS = [Platform.COVER, Platform.SENSOR]
+PLATFORMS = [Platform.COVER, Platform.SENSOR, Platform.BUTTON]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

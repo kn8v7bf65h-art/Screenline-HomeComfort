@@ -49,5 +49,15 @@
         }
       }
     }
+  },
+  "entity": {
+    "button": {
+      "tilt_increment": {
+        "name": "Lamellen één stap verder kantelen"
+      },
+      "tilt_decrement": {
+        "name": "Lamellen één stap terug kantelen"
+      }
+    }
   }
 }
